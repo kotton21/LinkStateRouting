@@ -45,11 +45,20 @@ def SendObj(sock, obj, address, timeout = .5):
 	for i in range(5):
 		sock.sendto(data, address)
 		print "Message sent from Node (Port {0}) to Node (Port {1})".format(sock.getsockname()[1], address[1])
-
+		'''
+		obj = None
+		while not isinstance(obj, ACK) or rcvdAddr[1] != address[1]:
+			try:
+				received, rcvdAddr = sock.recvfrom(buflen)
+				obj = UnpackData(received.strip())
+			except socket.timeout:
+				pass
+		'''
 		obj, rcvdAddr = ReceiveObj(sock, timeout)
-			#check that the ACK is received from the same sender..
+		#check that the ACK is received from the same sender..
 		if isinstance(obj, ACK) and rcvdAddr[1] == address[1]:
 			return True
+		
 	return False
 
 #waits the length of timeout to receive an object
@@ -61,6 +70,10 @@ def ReceiveObj(sock, timeout):
 		received, rcvdAddr = sock.recvfrom(buflen)
 		obj = UnpackData(received.strip())
 		print "Message received at Node (Port {0}) from Node (Port {1})".format(sock.getsockname()[1], rcvdAddr[1])
+		if isinstance(obj,ACK):
+			print "ACK"
+		elif isinstance(obj,Link):
+			print "link"
 	except socket.timeout:
 		pass
 	return obj, rcvdAddr
@@ -75,10 +88,9 @@ def UnpackData(data):
 	return object
 
 def findLink(localLinks, link):
-	print "finding link",link
 	for l in localLinks:
 		print l.ports, link.ports
-		if int(l.ports[0]) in link.ports and int(l.ports[1]) in link.ports:
+		if l.ports.intersection(link.ports) == l.ports:
 			return l
 	return None
 """
