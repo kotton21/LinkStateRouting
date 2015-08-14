@@ -19,7 +19,11 @@ class MyLinkStateHandler:
 		 # build the socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
 		self.sock.bind(me)
+		self.confirmed = []
 		# start the server
+		
+		self.testing = False
+
 		self.runServer()
 
 	def startflood(self):
@@ -27,6 +31,15 @@ class MyLinkStateHandler:
 		for link in self.links:
 			print "links", link.ports
 			self.trysend(self.sock, link, me, links)
+
+	def TestAll(self, sock, links, me):
+		self.testing = True
+		print "starting network handshake"
+		for link in links:
+			to = link.ports.difference([me[1]]).pop()
+			print "sending obj to",to
+			SendObj(sock, Test(link.dist), ("localhost", to ))
+				
 
 	#try to send the given obj to all the direct 'links'
 	def trysend(self, sock, obj, me, links):
@@ -97,17 +110,23 @@ class MyLinkStateHandler:
 		#links = links #local links to other nodes
 		
 		if self.last:
-			self.startflood()
+			#self.startflood()
+			self.TestAll(self.sock, self.links, self.me)
+		print "listening ..."
 		try:
 			while True:
 				obj, rcvdAddr = ReceiveObj(self.sock, None)
 				if isinstance(obj, Link):
-					SendACK(self.sock, rcvdAddr)
+					#SendACK(self.sock, rcvdAddr)
 					if len(self.packets) == 0:
 						self.startflood()
 					self.packets = self.forwardPackets(self.sock, self.me, self.links, self.packets, [obj])
-				elif isinstance(obj, ACK):
-					print 'unknown ack received from {0}'.format(rcvdAddr)
+				#elif isinstance(obj, ACK):
+				#	print 'unknown ack received from {0}'.format(rcvdAddr)
+				elif isinstance(obj, Test) and not self.testing:
+					print rcvdAddr,"confirmed"
+					if obj.dist
+					self.TestAll(self.sock, self.links, self.me)
 				elif isinstance(obj, Err):
 					print 'Err received from {0}: {1}'.format(rcvdAddr, obj.errmsg)
 		except KeyboardInterrupt:
